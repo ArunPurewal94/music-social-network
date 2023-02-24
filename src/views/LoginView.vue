@@ -1,0 +1,121 @@
+<template>
+    <div id="login" class="fadeIn">
+        <TopNavigation />
+        <div class="h-screen md:flex">
+            <div class="md:flex w-1/2 hidden">
+                <div class="bg-image">
+                    <img
+                        src="@/assets/img/crowd.png"
+                        alt="Crowd Background Cover"
+                        class="w-100% h-full" />
+                </div>
+            </div>
+
+            <div
+                class="flex md:w-1/2 justify-center py-10 items-center bg-white">
+                <form class="bg-white w-full">
+                    <h1
+                        class="text-gray-800 font-bold text-2xl mb-1 text-center">
+                        Hello Again!
+                    </h1>
+                    <p
+                        class="text-sm font-normal text-gray-600 mb-7 text-center">
+                        Welcome Back
+                    </p>
+
+                    <div class="flex items-center py-2 px-4 mb-4 w-full">
+                        <TextInput
+                            label="Email"
+                            :label-color="true"
+                            v-model:input="email"
+                            input-type="email"
+                            :error="errors.email ? errors.email[0] : ''" />
+                    </div>
+                    <div class="flex items-center py-2 px-4 w-full">
+                        <TextInput
+                            label="Password"
+                            :label-color="true"
+                            v-model:input="password"
+                            input-type="password"
+                            :error="
+                                errors.password ? errors.password[0] : ''
+                            " />
+                    </div>
+                    <div class="px-4">
+                        <button
+                            @click="login"
+                            type="button"
+                            class="inline-block w-full hover:text-indigo-600 hover:bg-transparent bg-indigo-600 hover:border-2 hover:border-indigo-600 mt-4 py-2 px-2 text-white font-semibold mb-2 rounded-lg">
+                            Login
+                        </button>
+                    </div>
+
+                    <span
+                        class="text-sm ml-2 hover:text-blue-500 cursor-pointer">
+                        <p class="text-center text-md text-gray-900">
+                            Don't have an account?
+                            <router-link
+                                class="text-blue-500 no-underline hover:underline"
+                                to="register"
+                                >Register</router-link
+                            >
+                        </p></span
+                    >
+                </form>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script setup>
+import { ref } from "vue";
+import axios from "axios";
+import { useUserStore } from "@/store/user-store";
+import { useProfileStore } from "@/store/profile-store";
+import { useSongStore } from "@/store/song-store";
+import { usePostStore } from "@/store/post-store";
+import { useVideoStore } from "@/store/video-store";
+import { useRouter } from "vue-router";
+import TextInput from "@/components/global/TextInput.vue";
+import TopNavigation from "@/components/static/TopNavigation.vue";
+
+const router = useRouter();
+const userStore = useUserStore();
+const profileStore = useProfileStore();
+const songStore = useSongStore();
+const postStore = usePostStore();
+const videoStore = useVideoStore();
+
+let errors = ref([]);
+let email = ref(null);
+let password = ref(null);
+
+const login = async () => {
+    errors.value = [];
+
+    try {
+        let res = await axios.post("api/login", {
+            email: email.value,
+            password: password.value,
+        });
+        axios.defaults.headers.common["Authorization"] =
+            "Bearer " + res.data.token;
+        userStore.setUserDetails(res);
+
+        await profileStore.fetchProfileById(userStore.id);
+        await songStore.fetchSongsByUserId(userStore.id);
+        await postStore.fetchPostsByUserId(userStore.id);
+        await videoStore.fetchVideosByUserId(userStore.id);
+
+        router.push("/account/profile/" + userStore.id);
+    } catch (err) {
+        errors.value = err.response.data.errors;
+    }
+};
+</script>
+
+<style lang="scss" scoped>
+#login {
+    animation-duration: 2s;
+}
+</style>
